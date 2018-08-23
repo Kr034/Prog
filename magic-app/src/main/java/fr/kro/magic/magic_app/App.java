@@ -1,6 +1,8 @@
 package fr.kro.magic.magic_app;
 
+import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.net.URL;
@@ -15,6 +17,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 
+import io.magicthegathering.javasdk.api.CardAPI;
 import io.magicthegathering.javasdk.api.SetAPI;
 import io.magicthegathering.javasdk.resource.Card;
 import io.magicthegathering.javasdk.resource.MtgSet;
@@ -26,39 +29,45 @@ public class App extends JFrame implements ActionListener {
 
 	static JTextField testField1;
 	JButton bouton1;
-	static String url;
+	static String url = "http://gatherer.wizards.com/Handlers/Image.ashx?multiverseid=439601&type=card";
 	static String imgurl;
 	static String code = "UST";
 	static int setssize;
+	private JFrame frame = new JFrame("Magic APP");
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		App app = new App();
 		app.init();
 	}
 
-	public void init() {
-		JFrame frame = new JFrame("Magic APP");
+	public void init() throws Exception {
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-		frame.setSize(1080, 720);
+		frame.setSize(1280, 720);
 		frame.setLocationRelativeTo(null);
-		JPanel panel = new JPanel();
-
+		frame.setResizable(false);
+		frame.setPreferredSize(new Dimension(1280, 720));
+		JLabel background = new JLabel(new ImageIcon(new URL("https://wolvmc.eu/perso/back.jpg")));
+		setLayout(new BorderLayout());
+		background.setPreferredSize(new Dimension(1280, 720));
 		testField1 = new JTextField("");
-		panel.add(testField1);
+		background.add(testField1);
+		background.setLayout(new FlowLayout());
 
 		bouton1 = new JButton("Rechercher");
+		bouton1.setPreferredSize(new Dimension(250, 30));
 		bouton1.addActionListener(this);
 
-		testField1.setPreferredSize(new Dimension(100, 20));
-		combo.setPreferredSize(new Dimension(100, 20));
+		testField1.setPreferredSize(new Dimension(250, 30));
+		combo.setPreferredSize(new Dimension(250, 30));
+		combo.addItem("Aucune");
 		List<MtgSet> sets = SetAPI.getAllSets();
 		for (int a = 0; a < sets.size(); a++) {
 			combo.addItem(sets.get(a).getName());
 		}
-		panel.add(combo);
-		panel.add(bouton1);
-		frame.getContentPane().add(panel);
+		background.add(combo);
+		background.add(bouton1);
+		frame.pack();
+		frame.getContentPane().add(background);
 		frame.setVisible(true);
 
 	}
@@ -66,8 +75,7 @@ public class App extends JFrame implements ActionListener {
 	public void contenue() throws Exception {
 		Card card = getCardSet(String.valueOf(testField1.getText()));
 		url = card.getImageUrl().toString();
-		System.out.println(url);
-		initurl();
+		initurl(url);
 	}
 
 	public static Card getCardSet(String cardname) {
@@ -89,38 +97,59 @@ public class App extends JFrame implements ActionListener {
 		return card;
 	}
 
+	public static Card getCardAll(String cardname) {
+		List<Card> cards = CardAPI.getAllCards();
+		String newlist = cards.toString().replaceAll("},", "//");
+		String newlist2 = newlist.replaceAll("null,", "//");
+		String[] cardstring = newlist2.split("//");
+		Card card = null;
+
+		for (int a = 0; a < cardstring.length; a++) {
+			System.out.println(cardstring[a] + (a + 1) + " / " + cardstring.length);
+			if (cardstring[a].contains(cardname)) {
+				card = cards.get(a);
+			}
+		}
+		return card;
+	}
+
 	@SuppressWarnings("deprecation")
 	public void actionPerformed(ActionEvent e) {
 		if ((JButton) e.getSource() == bouton1) {
-			int indexcode = combo.getSelectedIndex();
+			int indexcode = (combo.getSelectedIndex() - 1);
 			List<MtgSet> sets = SetAPI.getAllSets();
-			for (int a = 0; a < combo.countComponents(); a++) {
-				code = sets.get(indexcode).getCode();
+			if (combo.getSelectedItem().equals("Aucune")) {
+
+			} else {
+				for (int a = 0; a < combo.countComponents(); a++) {
+					code = sets.get(indexcode).getCode();
+				}
 			}
-			System.out.println(code);
 			String name = String.valueOf(testField1.getText());
-			System.out.println(getCardSet(name));
 			try {
 				if (name.isEmpty()) {
 					initIMGALL();
 				} else {
-					contenue();
+					if (combo.getSelectedItem().equals("Aucune")) {
+						initurl(getCardAll(name).getImageUrl());
+					} else {
+						contenue();
+					}
 				}
 
 			} catch (Exception e1) {
-				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
 		}
 	}
 
-	public void initurl() throws Exception {
-		JFrame frame = new JFrame(String.valueOf(testField1.getText()));
-		JLabel label = new JLabel(new ImageIcon(new URL(url)));
-		frame.getContentPane().add(label);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.pack();
-		frame.setVisible(true);
+	public void initurl(String urli) throws Exception {
+		JFrame frame1 = new JFrame(String.valueOf(testField1.getText()));
+		JLabel label = new JLabel(new ImageIcon(new URL(urli)));
+		frame1.getContentPane().add(label);
+		frame1.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		frame1.pack();
+		frame1.setVisible(true);
 
 	}
 
@@ -135,12 +164,10 @@ public class App extends JFrame implements ActionListener {
 		List<Card> list = set.getCards();
 		JLabel[] tab = new JLabel[list.size()];// instance du tableau
 		JPanel pan = new JPanel();// instance du panneau
-
 		JScrollPane scroll = new JScrollPane(pan);
-		scroll.setPreferredSize(new Dimension(1280, 720));
+		scroll.setPreferredSize(new Dimension(1280, 350));
 		scroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		scroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_NEVER);
-
 		for (int i = 0; i < list.size(); i++) {
 			System.out.println(list.get(i).getName() + " " + (i + 1) + "/" + list.size());
 
@@ -154,11 +181,11 @@ public class App extends JFrame implements ActionListener {
 			System.out.println("Ok " + list.get(i).getName() + " " + (i + 1) + "/" + list.size());
 		}
 
-		JFrame frame = new JFrame(set.getName());
-		frame.getContentPane().add(scroll);
-		frame.setSize(1280, 720);
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.pack();
-		frame.setVisible(true);
+		JFrame frame2 = new JFrame(set.getName());
+		frame2.getContentPane().add(scroll);
+		frame2.setSize(1280, 350);
+		frame2.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+		frame2.pack();
+		frame2.setVisible(true);
 	}
 }
